@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CopilotDiffPersistence">
+    <option name="pendingDiffs">
+      <map>
+        <entry key="$PROJECT_DIR$/.streamlit/secrets.toml.example">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/.streamlit/secrets.toml.example" />
+              <option name="originalContent" value="# Streamlit Secrets Template&#10;# Copy this file to secrets.toml and fill in your actual values&#10;# Never commit secrets.toml to version control!&#10;#&#10;# NOTE: For local development, it's recommended to use .env file instead&#10;# This file is only needed for Streamlit Cloud deployment&#10;&#10;SUPABASE_URL = &quot;your_supabase_url_here&quot;&#10;SUPABASE_SERVICE_ROLE_KEY = &quot;your_supabase_service_role_key_here&quot;" />
+              <option name="updatedContent" value="# Streamlit Secrets Template&#10;# Copy this file to secrets.toml and fill in your actual values&#10;# Never commit secrets.toml to version control!&#10;#&#10;# NOTE: For local development, it's recommended to use .env file instead&#10;# This file is only needed for Streamlit Cloud deployment&#10;&#10;SUPABASE_URL = &quot;your_supabase_url_here&quot;&#10;SUPABASE_SERVICE_ROLE_KEY = &quot;your_supabase_service_role_key_here&quot;" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/README.md">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/README.md" />
+              <option name="originalContent" value="# nobounce-be&#10;No Bounce BE&#10;" />
+              <option name="updatedContent" value="# nobounce-be&#10;No Bounce BE&#10;&#10;## Setup&#10;&#10;### 1. Install dependencies&#10;&#10;```bash&#10;uv sync&#10;```&#10;&#10;### 2. Configure secrets&#10;&#10;**For local development (Recommended):**&#10;&#10;Create a `.env` file in the root directory:&#10;&#10;```bash&#10;cp .env.example .env&#10;```&#10;&#10;Then edit `.env` and add your credentials:&#10;&#10;```&#10;SUPABASE_URL=https://your-project.supabase.co&#10;SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here&#10;```&#10;&#10;**For Streamlit Cloud deployment:**&#10;&#10;Create `.streamlit/secrets.toml` (for cloud deployment only):&#10;&#10;```bash&#10;cp .streamlit/secrets.toml.example .streamlit/secrets.toml&#10;```&#10;&#10;Then edit `.streamlit/secrets.toml` with your credentials.&#10;&#10;### 3. Run the app&#10;&#10;```bash&#10;uv run streamlit run main.py&#10;```&#10;&#10;## Security Notes&#10;&#10;- ⚠️ **Never commit `.env` or `.streamlit/secrets.toml` to version control**&#10;- The app will automatically load credentials from `.env` file first&#10;- If `.env` is not found, it will fall back to `.streamlit/secrets.toml`&#10;- For production deployments, use environment variables or Streamlit Cloud secrets" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/pyproject.toml">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/pyproject.toml" />
+              <option name="originalContent" value="[project]&#10;name = &quot;streamlit_app&quot;&#10;version = &quot;0.1.0&quot;&#10;description = &quot;Add your description here&quot;&#10;readme = &quot;README.md&quot;&#10;requires-python = &quot;&gt;=3.11&quot;&#10;dependencies = [&#10;    &quot;python-dotenv&gt;=1.0.0&quot;,&#10;    &quot;streamlit&gt;=1.53.0&quot;,&#10;    &quot;streamlit-authenticator&gt;=0.4.2&quot;,&#10;    &quot;supabase&gt;=2.27.2&quot;,&#10;    &quot;watchdog&gt;=6.0.0&quot;,&#10;]&#10;" />
+              <option name="updatedContent" value="[project]&#10;name = &quot;streamlit_app&quot;&#10;version = &quot;0.1.0&quot;&#10;description = &quot;Add your description here&quot;&#10;readme = &quot;README.md&quot;&#10;requires-python = &quot;&gt;=3.11&quot;&#10;dependencies = [&#10;    &quot;python-dotenv&gt;=1.0.0&quot;,&#10;    &quot;streamlit&gt;=1.53.0&quot;,&#10;    &quot;streamlit-authenticator&gt;=0.4.2&quot;,&#10;    &quot;supabase&gt;=2.27.2&quot;,&#10;    &quot;watchdog&gt;=6.0.0&quot;,&#10;]" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>
