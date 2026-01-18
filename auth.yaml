@@ -1,5 +1,5 @@
 cookie:
-  name: "sheeper_internal_admin"
+  name: "nobounce_internal_admin"
   key: "CHANGE_THIS_TO_A_LONG_RANDOM_SECRET"
   expiry_days: 30
 
@@ -9,3 +9,11 @@ credentials:
       email: "rafael.castanheira97@gmail.com"
       name: "Rafael"
       password: "$2b$12$1AKQswHrqb/64Rb2RpLCe.sHaDa1fqjJCRQ77s53fNhJDPlqNK7e2"
+    goncaloxdbatista@gmail.com:
+      email: "goncaloxdbatista@gmail.com"
+      name: "Gonçalo"
+      password: "$2b$12$f8a2BvRJu1d9wFuk5MTE4e9Zx3viB/9M7ROWs22V.k.UOyiZoC48G"
+    manel.messi10@gmail.com:
+      email: "manel.messi10@gmail.com"
+      name: "Manuel"
+      password: "$2b$12$f8a2BvRJu1d9wFuk5MTE4e9Zx3viB/9M7ROWs22V.k.UOyiZoC48G"
