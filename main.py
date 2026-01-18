@@ -5,7 +5,7 @@ import streamlit_authenticator as stauth
 from supabase import create_client
 
 
-st.set_page_config(page_title="Sheeper Admin", layout="wide")
+st.set_page_config(page_title="No Bounce 🏀 Admin", layout="wide")
 
 SUPABASE_URL = st.secrets["SUPABASE_URL"]
 SUPABASE_SERVICE_ROLE_KEY = st.secrets["SUPABASE_SERVICE_ROLE_KEY"]
@@ -33,7 +33,7 @@ if st.session_state.get("authentication_status") is None:
 authenticator.logout("Logout", "sidebar")
 st.sidebar.success(f"Logado como: {st.session_state.get('name')}")
 
-st.title("No Bounce Internal Admin")
+st.title("No Bounce 🏀 Admin")
 st.caption("Adicionar campos e ratings (No Bounce)")
 
 # -----------------------
