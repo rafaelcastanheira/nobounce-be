@@ -1,0 +1,15 @@
+cookie:
+  name: "sheeper_internal_admin"
+  key: "CHANGE_THIS_TO_A_LONG_RANDOM_SECRET"
+  expiry_days: 30
+
+credentials:
+  usernames:
+    rafael@yourdomain.com:
+      email: "rafael@yourdomain.com"
+      name: "Rafael"
+      password: "$2b$12$REPLACE_WITH_HASH"
+    nobounce@domain.com:
+      email: "nobounce@domain.com"
+      name: "No Bounce"
+      password: "$2b$12$REPLACE_WITH_HASH"

@@ -1,0 +1,12 @@
+[project]
+name = "streamlit_app"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "streamlit>=1.53.0",
+    "streamlit-authenticator>=0.4.2",
+    "supabase>=2.27.2",
+    "watchdog>=6.0.0",
+]
