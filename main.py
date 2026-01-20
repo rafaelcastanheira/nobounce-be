@@ -127,6 +127,8 @@ with tab1:
             st.error("Name is required.")
             st.stop()
 
+        admin_email = st.session_state.get('username')  # streamlit-authenticator stores email in 'username'
+
         try:
             payload = {
                 "name": name_in.strip(),
@@ -138,6 +140,7 @@ with tab1:
                 "instagram_url": insta_in.strip() if insta_in.strip() else None,
                 "tiktok_url": tiktok_in.strip() if tiktok_in.strip() else None,
                 "image_urls": [],  # start empty
+                "admin_created_by": admin_email,
             }
         except ValueError as e:
             st.error(f"Latitude/Longitude must be valid numbers (or empty): {e}")
@@ -210,6 +213,8 @@ with tab2:
         submitted = st.form_submit_button("Save Rating")
 
     if submitted:
+        admin_email = st.session_state.get('username')  # streamlit-authenticator stores email in 'username'
+
         payload = {
             "court_id": court_id,
             "source": source,
@@ -220,6 +225,7 @@ with tab2:
             "bench": round(float(bench), 2),
             "water": round(float(water), 2),
             "backboard": round(float(backboard), 2),
+            "admin_created_by": admin_email,
         }
 
         try:
