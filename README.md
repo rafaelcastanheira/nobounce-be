@@ -39,7 +39,7 @@ Then edit `.streamlit/secrets.toml` with your credentials.
 ### 3. Run the app
 
 ```bash
-uv run streamlit run main.py
+uv run streamlit run home.py
 ```
 
 ## Security Notes
