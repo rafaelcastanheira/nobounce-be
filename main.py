@@ -62,8 +62,8 @@ with col1:
 
 with col2:
     st.markdown("**📱 App Store**")
-    st.button("App Store (Em breve)", disabled=True, use_container_width=True)
+    st.link_button("App Store", "https://apps.apple.com/us/app/no-bounce/id6757975858", use_container_width=True)
 
 with col3:
     st.markdown("**🤖 Play Store**")
-    st.button("Play Store (Em breve)", disabled=True, use_container_width=True)
+    st.link_button("Play Store", "https://play.google.com/store/apps/details?id=com.nobounceapp", use_container_width=True)
