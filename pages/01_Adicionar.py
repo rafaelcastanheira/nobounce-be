@@ -46,12 +46,12 @@ with tab1:
             district_in = st.text_input("Distrito")
 
         with col2:
-            lat_in = st.text_input("Latitude (optional)")
-            lon_in = st.text_input("Longitude (optional)")
-            insta_in = st.text_input("Instagram URL (optional)")
-            tiktok_in = st.text_input("TikTok URL (optional)")
+            lat_in = st.text_input("Latitude (opcional)")
+            lon_in = st.text_input("Longitude (opcional)")
+            insta_in = st.text_input("Instagram URL (opcional)")
+            tiktok_in = st.text_input("TikTok URL (opcional)")
 
-        user_created_by_in = st.text_input("User Created By (UUID, opcional)", key="court_user_created_by")
+        user_created_by_in = st.text_input("Utilizador Criado Por (UUID, opcional)", key="court_user_created_by")
 
         uploaded_files = st.file_uploader("Upload de Imagens do Campo", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
 
@@ -93,7 +93,7 @@ with tab1:
             court_id = court_data['id']
 
             if uploaded_files:
-                with st.spinner(f"Uploading {len(uploaded_files)} image(s)..."):
+                with st.spinner(f"A carregar {len(uploaded_files)} imagem(nes)..."):
                     image_urls = upload_images_to_storage(sb, uploaded_files, court_id)
 
                     if image_urls:
@@ -127,20 +127,20 @@ with tab2:
         colA, colB, colC = st.columns(3)
 
         with colA:
-            overall = st.number_input("Overall (0-10)", 0.0, 10.0, 0.0, step=0.25, format="%.2f")
-            rim = st.number_input("Aro (0-10)", 0.0, 10.0, 0.0, step=0.25, format="%.2f")
-            floor = st.number_input("Chão (0-10)", 0.0, 10.0, 0.0, step=0.25, format="%.2f")
+            overall = st.number_input("Overall (0-10) *", 0.0, 10.0, 0.0, step=0.25, format="%.2f")
+            rim = st.number_input("Aro (0-10, opcional)", 0.0, 10.0, value=None, step=0.25, format="%.2f")
+            floor = st.number_input("Chão (0-10, opcional)", 0.0, 10.0, value=None, step=0.25, format="%.2f")
 
         with colB:
-            court_spacing = st.number_input("Espaço (0-10)", 0.0, 10.0, 0.0, step=0.25, format="%.2f")
-            bench = st.number_input("Banco (0-10)", 0.0, 10.0, 0.0, step=0.25, format="%.2f")
-            water = st.number_input("Água (0-10)", 0.0, 10.0, 0.0, step=0.25, format="%.2f")
+            court_spacing = st.number_input("Espaço (0-10, opcional)", 0.0, 10.0, value=None, step=0.25, format="%.2f")
+            bench = st.number_input("Banco (0-10, opcional)", 0.0, 10.0, value=None, step=0.25, format="%.2f")
+            water = st.number_input("Água (0-10, opcional)", 0.0, 10.0, value=None, step=0.25, format="%.2f")
 
         with colC:
-            backboard = st.number_input("Tabela (0-10)", 0.0, 10.0, 0.0, step=0.25, format="%.2f")
-            source = st.selectbox("Fonte", ["NO_BOUNCE"], index=0)
+            backboard = st.number_input("Tabela (0-10, opcional)", 0.0, 10.0, value=None, step=0.25, format="%.2f")
+            source = st.selectbox("Fonte", ["NO_BOUNCE", "COMMUNITY"], index=0)
 
-        user_id_in = st.text_input("User ID (UUID, opcional)", key="rating_user_id")
+        user_id_in = st.text_input("ID do Utilizador (UUID, opcional)", key="rating_user_id")
 
         submitted = st.form_submit_button("Criar Rating")
 
@@ -151,12 +151,12 @@ with tab2:
             "court_id": court_id,
             "source": source,
             "overall": round(float(overall), 2),
-            "rim": round(float(rim), 2),
-            "floor": round(float(floor), 2),
-            "court_spacing": round(float(court_spacing), 2),
-            "bench": round(float(bench), 2),
-            "water": round(float(water), 2),
-            "backboard": round(float(backboard), 2),
+            "rim": round(float(rim), 2) if rim is not None else None,
+            "floor": round(float(floor), 2) if floor is not None else None,
+            "court_spacing": round(float(court_spacing), 2) if court_spacing is not None else None,
+            "bench": round(float(bench), 2) if bench is not None else None,
+            "water": round(float(water), 2) if water is not None else None,
+            "backboard": round(float(backboard), 2) if backboard is not None else None,
             "admin_created_by": admin_email,
             "user_id": user_id_in.strip() if user_id_in.strip() else None,
         }

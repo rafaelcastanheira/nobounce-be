@@ -72,12 +72,12 @@ with tab1:
         with col2:
             lat_val = court_data.get('latitude')
             lon_val = court_data.get('longitude')
-            lat_in = st.text_input("Latitude (optional)", value=str(lat_val) if lat_val is not None else '')
-            lon_in = st.text_input("Longitude (optional)", value=str(lon_val) if lon_val is not None else '')
-            insta_in = st.text_input("Instagram URL (optional)", value=court_data.get('instagram_url', '') or '')
-            tiktok_in = st.text_input("TikTok URL (optional)", value=court_data.get('tiktok_url', '') or '')
+            lat_in = st.text_input("Latitude (opcional)", value=str(lat_val) if lat_val is not None else '')
+            lon_in = st.text_input("Longitude (opcional)", value=str(lon_val) if lon_val is not None else '')
+            insta_in = st.text_input("Instagram URL (opcional)", value=court_data.get('instagram_url', '') or '')
+            tiktok_in = st.text_input("TikTok URL (opcional)", value=court_data.get('tiktok_url', '') or '')
 
-        user_created_by_in = st.text_input("User Created By (UUID, opcional)",
+        user_created_by_in = st.text_input("Utilizador Criado Por (UUID, opcional)",
                                            value=court_data.get('user_created_by', '') or '',
                                            key="court_user_created_by")
 
@@ -165,34 +165,36 @@ with tab2:
         colA, colB, colC = st.columns(3)
 
         with colA:
-            overall = st.number_input("Overall (0-10)", 0.0, 10.0,
+            overall = st.number_input("Overall (0-10) *", 0.0, 10.0,
                                      value=float(existing_rating.get('overall', 0.0)) if existing_rating else 0.0,
                                      step=0.25, format="%.2f")
-            rim = st.number_input("Aro (0-10)", 0.0, 10.0,
-                                 value=float(existing_rating.get('rim', 0.0)) if existing_rating else 0.0,
+            rim = st.number_input("Aro (0-10, opcional)", 0.0, 10.0,
+                                 value=float(existing_rating['rim']) if existing_rating and existing_rating.get('rim') is not None else None,
                                  step=0.25, format="%.2f")
-            floor = st.number_input("Chão (0-10)", 0.0, 10.0,
-                                   value=float(existing_rating.get('floor', 0.0)) if existing_rating else 0.0,
+            floor = st.number_input("Chão (0-10, opcional)", 0.0, 10.0,
+                                   value=float(existing_rating['floor']) if existing_rating and existing_rating.get('floor') is not None else None,
                                    step=0.25, format="%.2f")
 
         with colB:
-            court_spacing = st.number_input("Espaço (0-10)", 0.0, 10.0,
-                                           value=float(existing_rating.get('court_spacing', 0.0)) if existing_rating else 0.0,
+            court_spacing = st.number_input("Espaço (0-10, opcional)", 0.0, 10.0,
+                                           value=float(existing_rating['court_spacing']) if existing_rating and existing_rating.get('court_spacing') is not None else None,
                                            step=0.25, format="%.2f")
-            bench = st.number_input("Banco (0-10)", 0.0, 10.0,
-                                   value=float(existing_rating.get('bench', 0.0)) if existing_rating else 0.0,
+            bench = st.number_input("Banco (0-10, opcional)", 0.0, 10.0,
+                                   value=float(existing_rating['bench']) if existing_rating and existing_rating.get('bench') is not None else None,
                                    step=0.25, format="%.2f")
-            water = st.number_input("Água (0-10)", 0.0, 10.0,
-                                   value=float(existing_rating.get('water', 0.0)) if existing_rating else 0.0,
+            water = st.number_input("Água (0-10, opcional)", 0.0, 10.0,
+                                   value=float(existing_rating['water']) if existing_rating and existing_rating.get('water') is not None else None,
                                    step=0.25, format="%.2f")
 
         with colC:
-            backboard = st.number_input("Tabela (0-10)", 0.0, 10.0,
-                                       value=float(existing_rating.get('backboard', 0.0)) if existing_rating else 0.0,
+            backboard = st.number_input("Tabela (0-10, opcional)", 0.0, 10.0,
+                                       value=float(existing_rating['backboard']) if existing_rating and existing_rating.get('backboard') is not None else None,
                                        step=0.25, format="%.2f")
-            source = st.selectbox("Fonte", ["NO_BOUNCE"], index=0)
+            source_options = ["NO_BOUNCE", "COMMUNITY"]
+            source_index = source_options.index(existing_rating.get('source', 'NO_BOUNCE')) if existing_rating and existing_rating.get('source') in source_options else 0
+            source = st.selectbox("Fonte", source_options, index=source_index)
 
-        user_id_in = st.text_input("User ID (UUID, opcional)",
+        user_id_in = st.text_input("ID do Utilizador (UUID, opcional)",
                                    value=existing_rating.get('user_id', '') or '' if existing_rating else '',
                                    key="rating_user_id")
 
@@ -205,12 +207,12 @@ with tab2:
             "court_id": selected_court_id,
             "source": source,
             "overall": round(float(overall), 2),
-            "rim": round(float(rim), 2),
-            "floor": round(float(floor), 2),
-            "court_spacing": round(float(court_spacing), 2),
-            "bench": round(float(bench), 2),
-            "water": round(float(water), 2),
-            "backboard": round(float(backboard), 2),
+            "rim": round(float(rim), 2) if rim is not None else None,
+            "floor": round(float(floor), 2) if floor is not None else None,
+            "court_spacing": round(float(court_spacing), 2) if court_spacing is not None else None,
+            "bench": round(float(bench), 2) if bench is not None else None,
+            "water": round(float(water), 2) if water is not None else None,
+            "backboard": round(float(backboard), 2) if backboard is not None else None,
             "admin_created_by": admin_email,
             "user_id": user_id_in.strip() if user_id_in.strip() else None,
         }
