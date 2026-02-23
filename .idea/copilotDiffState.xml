@@ -20,15 +20,6 @@
             </PendingDiffInfo>
           </value>
         </entry>
-        <entry key="$PROJECT_DIR$/pyproject.toml">
-          <value>
-            <PendingDiffInfo>
-              <option name="filePath" value="$PROJECT_DIR$/pyproject.toml" />
-              <option name="originalContent" value="[project]&#10;name = &quot;streamlit_app&quot;&#10;version = &quot;0.1.0&quot;&#10;description = &quot;Add your description here&quot;&#10;readme = &quot;README.md&quot;&#10;requires-python = &quot;&gt;=3.11&quot;&#10;dependencies = [&#10;    &quot;python-dotenv&gt;=1.0.0&quot;,&#10;    &quot;streamlit&gt;=1.53.0&quot;,&#10;    &quot;streamlit-authenticator&gt;=0.4.2&quot;,&#10;    &quot;supabase&gt;=2.27.2&quot;,&#10;    &quot;watchdog&gt;=6.0.0&quot;,&#10;]&#10;" />
-              <option name="updatedContent" value="[project]&#10;name = &quot;streamlit_app&quot;&#10;version = &quot;0.1.0&quot;&#10;description = &quot;Add your description here&quot;&#10;readme = &quot;README.md&quot;&#10;requires-python = &quot;&gt;=3.11&quot;&#10;dependencies = [&#10;    &quot;python-dotenv&gt;=1.0.0&quot;,&#10;    &quot;streamlit&gt;=1.53.0&quot;,&#10;    &quot;streamlit-authenticator&gt;=0.4.2&quot;,&#10;    &quot;supabase&gt;=2.27.2&quot;,&#10;    &quot;watchdog&gt;=6.0.0&quot;,&#10;]" />
-            </PendingDiffInfo>
-          </value>
-        </entry>
       </map>
     </option>
   </component>

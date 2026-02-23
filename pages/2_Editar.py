@@ -77,6 +77,10 @@ with tab1:
             insta_in = st.text_input("Instagram URL (optional)", value=court_data.get('instagram_url', '') or '')
             tiktok_in = st.text_input("TikTok URL (optional)", value=court_data.get('tiktok_url', '') or '')
 
+        user_created_by_in = st.text_input("User Created By (UUID, opcional)",
+                                           value=court_data.get('user_created_by', '') or '',
+                                           key="court_user_created_by")
+
         # Show existing images
         existing_images = court_data.get('image_urls', [])
         if existing_images:
@@ -109,6 +113,7 @@ with tab1:
                 "instagram_url": insta_in.strip() if insta_in.strip() else None,
                 "tiktok_url": tiktok_in.strip() if tiktok_in.strip() else None,
                 "admin_created_by": admin_email,  # Track who last updated
+                "user_created_by": user_created_by_in.strip() if user_created_by_in.strip() else None,
             }
         except ValueError as e:
             st.error(f"Latitude/Longitude tem que ser números válidos: {e}")
@@ -187,6 +192,10 @@ with tab2:
                                        step=0.25, format="%.2f")
             source = st.selectbox("Fonte", ["NO_BOUNCE"], index=0)
 
+        user_id_in = st.text_input("User ID (UUID, opcional)",
+                                   value=existing_rating.get('user_id', '') or '' if existing_rating else '',
+                                   key="rating_user_id")
+
         submitted = st.form_submit_button("Atualizar Rating")
 
     if submitted:
@@ -203,6 +212,7 @@ with tab2:
             "water": round(float(water), 2),
             "backboard": round(float(backboard), 2),
             "admin_created_by": admin_email,
+            "user_id": user_id_in.strip() if user_id_in.strip() else None,
         }
 
         try:

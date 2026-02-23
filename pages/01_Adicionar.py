@@ -51,6 +51,8 @@ with tab1:
             insta_in = st.text_input("Instagram URL (optional)")
             tiktok_in = st.text_input("TikTok URL (optional)")
 
+        user_created_by_in = st.text_input("User Created By (UUID, opcional)", key="court_user_created_by")
+
         uploaded_files = st.file_uploader("Upload de Imagens do Campo", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
 
         submitted = st.form_submit_button("Criar Campo")
@@ -74,6 +76,7 @@ with tab1:
                 "tiktok_url": tiktok_in.strip() if tiktok_in.strip() else None,
                 "image_urls": [],
                 "admin_created_by": admin_email,
+                "user_created_by": user_created_by_in.strip() if user_created_by_in.strip() else None,
             }
         except ValueError as e:
             st.error(f"Latitude/Longitude tem que ser numéros válidos: {e}")
@@ -137,6 +140,8 @@ with tab2:
             backboard = st.number_input("Tabela (0-10)", 0.0, 10.0, 0.0, step=0.25, format="%.2f")
             source = st.selectbox("Fonte", ["NO_BOUNCE"], index=0)
 
+        user_id_in = st.text_input("User ID (UUID, opcional)", key="rating_user_id")
+
         submitted = st.form_submit_button("Criar Rating")
 
     if submitted:
@@ -153,6 +158,7 @@ with tab2:
             "water": round(float(water), 2),
             "backboard": round(float(backboard), 2),
             "admin_created_by": admin_email,
+            "user_id": user_id_in.strip() if user_id_in.strip() else None,
         }
 
         try:
