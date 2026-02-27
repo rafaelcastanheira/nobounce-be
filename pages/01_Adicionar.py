@@ -138,13 +138,17 @@ with tab2:
 
         with colC:
             backboard = st.number_input("Tabela (0-10, opcional)", 0.0, 10.0, value=None, step=0.25, format="%.2f")
-            source = st.selectbox("Fonte", ["NO_BOUNCE", "COMMUNITY"], index=0)
+            source = st.selectbox("Fonte *", ["NO_BOUNCE", "COMMUNITY"], index=None, placeholder="Selecionar fonte")
 
         user_id_in = st.text_input("ID do Utilizador (UUID, opcional)", key="rating_user_id")
 
         submitted = st.form_submit_button("Criar Rating")
 
     if submitted:
+        if not source:
+            st.error("Fonte é obrigatório.")
+            st.stop()
+
         admin_email = st.session_state.get('username')
 
         payload = {

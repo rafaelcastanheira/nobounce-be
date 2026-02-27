@@ -205,8 +205,11 @@ with tab2:
                                        value=float(existing_rating['backboard']) if existing_rating and existing_rating.get('backboard') is not None else None,
                                        step=0.25, format="%.2f")
             source_options = ["NO_BOUNCE", "COMMUNITY"]
-            source_index = source_options.index(existing_rating.get('source', 'NO_BOUNCE')) if existing_rating and existing_rating.get('source') in source_options else 0
-            source = st.selectbox("Fonte", source_options, index=source_index)
+            if existing_rating and existing_rating.get('source') in source_options:
+                source_index = source_options.index(existing_rating['source'])
+                source = st.selectbox("Fonte *", source_options, index=source_index)
+            else:
+                source = st.selectbox("Fonte *", source_options, index=None, placeholder="Selecionar fonte")
 
         user_id_in = st.text_input("ID do Utilizador (UUID, opcional)",
                                    value=existing_rating.get('user_id', '') or '' if existing_rating else '',
@@ -217,6 +220,9 @@ with tab2:
     if submitted:
         if not existing_rating:
             st.error("Não existe rating selecionado para atualizar.")
+            st.stop()
+        if not source:
+            st.error("Fonte é obrigatório.")
             st.stop()
 
         admin_email = st.session_state.get('username')
