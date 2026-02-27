@@ -29,7 +29,7 @@ sb = get_supabase_client()
 # -----------------------
 # Tabs
 # -----------------------
-tab1, tab2 = st.tabs(["Editar Campo", "Editar Rating"])
+tab1, tab2, tab3 = st.tabs(["Editar Campo", "Editar Rating", "Editar Comentário"])
 
 # =======================
 # TAB 1: Update Court
@@ -138,7 +138,7 @@ with tab1:
 # TAB 2: Update Court Rating
 # =======================
 with tab2:
-    st.subheader("Editar Rating (No Bounce)")
+    st.subheader("Editar Rating")
 
     courts = fetch_courts(sb)
     if not courts:
@@ -151,15 +151,29 @@ with tab2:
     selected_label = st.selectbox("Selecionar Campo", labels, key="update_rating_select")
     selected_court_id = label_to_id[selected_label]
 
-    # Fetch existing rating
-    rating_result = sb.table("court_ratings").select("*").eq("court_id", selected_court_id).eq("source", "NO_BOUNCE").execute()
+    # Fetch all ratings for the selected court
+    rating_result = sb.table("court_ratings").select("*").eq("court_id", selected_court_id).execute()
 
-    existing_rating = rating_result.data[0] if rating_result.data else None
-
-    if existing_rating:
-        st.info(f"Editar rating existente para: **{selected_label}**")
+    if not rating_result.data:
+        st.warning("Não existem ratings para este campo.")
+        existing_rating = None
     else:
-        st.warning(f"Não existe rating para este campo.")
+        # Build labels for each rating so the user can pick one
+        def rating_label(r):
+            src = r.get("source", "?")
+            overall = r.get("overall", "?")
+            user = r.get("user_id") or "—"
+            return f"{src} | Overall: {overall} | User: {user}"
+
+        rating_labels = [rating_label(r) for r in rating_result.data]
+        selected_rating_label = st.selectbox(
+            "Selecionar Rating para editar",
+            rating_labels,
+            key="update_rating_pick",
+        )
+        selected_rating_idx = rating_labels.index(selected_rating_label)
+        existing_rating = rating_result.data[selected_rating_idx]
+        st.info(f"A editar rating **{existing_rating.get('source')}** para: **{selected_label}**")
 
     with st.form("update_rating_form"):
         colA, colB, colC = st.columns(3)
@@ -201,7 +215,12 @@ with tab2:
         submitted = st.form_submit_button("Atualizar Rating")
 
     if submitted:
+        if not existing_rating:
+            st.error("Não existe rating selecionado para atualizar.")
+            st.stop()
+
         admin_email = st.session_state.get('username')
+        rating_id = existing_rating["id"]
 
         payload = {
             "court_id": selected_court_id,
@@ -218,7 +237,86 @@ with tab2:
         }
 
         try:
-            sb.table("court_ratings").upsert(payload, on_conflict="court_id,source").execute()
+            sb.table("court_ratings").update(payload).eq("id", rating_id).execute()
             st.success("Rating atualizado ✅")
         except Exception as e:
             st.error(f"Erro ao atualizar rating: {e}")
+
+# =======================
+# TAB 3: Update Comment
+# =======================
+with tab3:
+    st.subheader("Editar Comentário")
+
+    courts_comments = fetch_courts(sb)
+    if not courts_comments:
+        st.warning("Não foram encontrados campos.")
+        st.stop()
+
+    comment_labels = [court_label(c) for c in courts_comments]
+    comment_label_to_id = {court_label(c): c["id"] for c in courts_comments}
+
+    selected_comment_label = st.selectbox("Selecionar Campo", comment_labels, key="update_comment_court")
+    selected_comment_court_id = comment_label_to_id[selected_comment_label]
+
+    # Fetch all comments for the selected court
+    comments_result = sb.table("court_comments").select("*").eq("court_id", selected_comment_court_id).execute()
+
+    if not comments_result.data:
+        st.warning("Não existem comentários para este campo.")
+        existing_comment = None
+    else:
+        # Build labels for each comment so the user can pick one
+        def comment_label_fn(c):
+            user = c.get("user_id") or "—"
+            text = (c.get("comment") or "")[:50]
+            return f"User: {user} | {text}..."
+
+        comment_pick_labels = [comment_label_fn(c) for c in comments_result.data]
+        selected_comment_pick = st.selectbox(
+            "Selecionar Comentário para editar",
+            comment_pick_labels,
+            key="update_comment_pick",
+        )
+        selected_comment_idx = comment_pick_labels.index(selected_comment_pick)
+        existing_comment = comments_result.data[selected_comment_idx]
+        st.info(f"A editar comentário de **{existing_comment.get('user_id', '—')}**")
+
+    with st.form("update_comment_form"):
+        edit_user_id = st.text_input(
+            "ID do Utilizador (UUID) *",
+            value=existing_comment.get('user_id', '') or '' if existing_comment else '',
+            key="edit_comment_user_id",
+        )
+        edit_comment_text = st.text_area(
+            "Comentário *",
+            value=existing_comment.get('comment', '') or '' if existing_comment else '',
+            key="edit_comment_text",
+        )
+
+        submitted_comment = st.form_submit_button("Atualizar Comentário")
+
+    if submitted_comment:
+        if not existing_comment:
+            st.error("Não existe comentário selecionado para atualizar.")
+            st.stop()
+        if not edit_user_id.strip():
+            st.error("ID do Utilizador é obrigatório.")
+            st.stop()
+        if not edit_comment_text.strip():
+            st.error("Comentário é obrigatório.")
+            st.stop()
+
+        comment_id = existing_comment["id"]
+
+        payload = {
+            "user_id": edit_user_id.strip(),
+            "comment": edit_comment_text.strip(),
+        }
+
+        try:
+            sb.table("court_comments").update(payload).eq("id", comment_id).execute()
+            st.success("Comentário atualizado ✅")
+        except Exception as e:
+            st.error(f"Erro ao atualizar comentário: {e}")
+

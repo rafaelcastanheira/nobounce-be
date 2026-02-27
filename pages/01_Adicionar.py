@@ -28,7 +28,7 @@ sb = get_supabase_client()
 # -----------------------
 # Tabs
 # -----------------------
-tab1, tab2 = st.tabs(["Adicionar Campo", "Adicionar Rating"])
+tab1, tab2, tab3 = st.tabs(["Adicionar Campo", "Adicionar Rating", "Adicionar Comentário"])
 
 # =======================
 # TAB 1: Add Court
@@ -166,3 +166,47 @@ with tab2:
             st.success("Rating criado ✅")
         except Exception as e:
             st.error(f"Erro ao criar rating: {e}")
+
+# =======================
+# TAB 3: Add Comment
+# =======================
+with tab3:
+    st.subheader("Adicionar Comentário")
+
+    courts_comments = fetch_courts(sb)
+    if not courts_comments:
+        st.warning("Não foram encontrados campos.")
+        st.stop()
+
+    comment_labels = [court_label(c) for c in courts_comments]
+    comment_label_to_id = {court_label(c): c["id"] for c in courts_comments}
+
+    with st.form("add_comment_form"):
+        selected_comment_court = st.selectbox("Campo *", comment_labels, key="add_comment_court")
+        comment_court_id = comment_label_to_id[selected_comment_court]
+
+        comment_user_id = st.text_input("ID do Utilizador (UUID) *", key="add_comment_user_id")
+        comment_text = st.text_area("Comentário *", key="add_comment_text")
+
+        submitted_comment = st.form_submit_button("Criar Comentário")
+
+    if submitted_comment:
+        if not comment_user_id.strip():
+            st.error("ID do Utilizador é obrigatório.")
+            st.stop()
+        if not comment_text.strip():
+            st.error("Comentário é obrigatório.")
+            st.stop()
+
+        payload = {
+            "court_id": comment_court_id,
+            "user_id": comment_user_id.strip(),
+            "comment": comment_text.strip(),
+        }
+
+        try:
+            sb.table("court_comments").insert(payload).execute()
+            st.success("Comentário criado ✅")
+        except Exception as e:
+            st.error(f"Erro ao criar comentário: {e}")
+
