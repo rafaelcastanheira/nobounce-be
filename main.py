@@ -44,6 +44,7 @@ Usa a barra lateral para navegar entre as páginas:
 
 - **Adicionar**: Adicionar novos campos e ratings
 - **Editar**: Editar campos e ratings existentes
+- **Torneios**: Gerir torneios, equipas, grupos e jogos
 
 Seleciona uma página na barra lateral para começar.
 """)

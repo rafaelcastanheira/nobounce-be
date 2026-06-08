@@ -3,11 +3,12 @@ import streamlit as st
 from supabase import create_client
 
 
+def get_supabase_secrets():
+    return  st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_SERVICE_ROLE_KEY"]
+
 def get_supabase_client():
     """Get authenticated Supabase client."""
-    SUPABASE_URL = st.secrets["SUPABASE_URL"]
-    SUPABASE_SERVICE_ROLE_KEY = st.secrets["SUPABASE_SERVICE_ROLE_KEY"]
-    return create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+    return create_client(*get_supabase_secrets())
 
 
 def fetch_courts(sb):
@@ -22,6 +23,66 @@ def court_label(c: dict) -> str:
     district = c.get("district") or ""
     suffix = " — ".join([x for x in [city, district] if x])
     return f"{c['name']}{(' — ' + suffix) if suffix else ''}"
+
+
+def fetch_tournaments(sb):
+    """Fetch all tournaments, newest first."""
+    res = (
+        sb.table("tournaments")
+        .select("*")
+        .order("created_at", desc=True)
+        .execute()
+    )
+    return res.data or []
+
+
+@st.cache_data(ttl=300, show_spinner="A carregar jogadores...")
+def fetch_profiles(_sb, page_size: int = 1000):
+    """Fetch all profiles (app users) for roster selection.
+
+    Supabase/PostgREST caps a single response at 1000 rows, so we page
+    through with .range() until we've pulled everything.
+
+    Cached for 5 minutes. The `_sb` arg is underscore-prefixed so Streamlit
+    skips hashing the (unhashable) Supabase client. Call
+    `fetch_profiles.clear()` to force a refresh.
+    """
+    rows = []
+    start = 0
+    while True:
+        res = (
+            _sb.table("profiles")
+            .select("id,display_name,city")
+            .order("display_name")
+            .range(start, start + page_size - 1)
+            .execute()
+        )
+        batch = res.data or []
+        rows.extend(batch)
+        if len(batch) < page_size:
+            break
+        start += page_size
+    return rows
+
+
+def tournament_label(t: dict) -> str:
+    """Display label for a tournament."""
+    size = t.get("team_size")
+    size_txt = f"{size}x{size}" if size else "?"
+    return f"{t.get('name', '—')} ({size_txt}) · {t.get('status', '?')}"
+
+
+def team_label(t: dict) -> str:
+    """Display label for a team."""
+    seed = t.get("seed")
+    return f"{t.get('name', '—')}" + (f" (seed {seed})" if seed is not None else "")
+
+
+def profile_label(p: dict) -> str:
+    """Display label for a profile."""
+    name = p.get("display_name") or "—"
+    city = p.get("city")
+    return f"{name}{(' · ' + city) if city else ''} · {str(p['id'])[:8]}"
 
 
 def parse_float_or_none(s: str):
