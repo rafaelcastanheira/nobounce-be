@@ -17,3 +17,7 @@ credentials:
       email: "manel.messi10@gmail.com"
       name: "Manuel"
       password: "$2b$12$f8a2BvRJu1d9wFuk5MTE4e9Zx3viB/9M7ROWs22V.k.UOyiZoC48G"
+    filipe.simoes@live.com.pt:
+      email: "filipe.simoes@live.com.pt"
+      name: "Filipe"
+      password: "$2b$12$PrkYej3iNK.qintwd.eDle5MLFpomOHMuxbLQAA5tOI0RzmFjvCOG"
