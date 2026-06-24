@@ -1,6 +1,6 @@
 """Page for managing tournaments: tournaments, teams, groups and matches."""
 import math
-from datetime import date
+from datetime import date, datetime, timezone
 import sys
 from pathlib import Path
 
@@ -17,7 +17,11 @@ from utils import (
     tournament_label,
     team_label,
     profile_label,
+    upload_images_to_storage,
+    sync_tournament_stripe,
 )
+
+TOURNAMENT_IMAGES_BUCKET = "tournament-images"
 
 st.set_page_config(page_title="Torneios", layout="wide", page_icon="🏆")
 
@@ -219,7 +223,13 @@ with tab_t:
                 )
                 start_in = st.date_input("Data de início", value=None)
                 end_in = st.date_input("Data de fim", value=None)
+                price_in = st.number_input(
+                    "Preço por equipa (€, 0 = grátis)", 0.0, 100000.0, 0.0, step=5.0
+                )
 
+            image_file_in = st.file_uploader(
+                "Imagem do torneio (opcional)", type=["jpg", "jpeg", "png"]
+            )
             desc_in = st.text_area("Descrição")
 
             st.markdown("**Configuração da fase de grupos** (só para o formato com grupos)")
@@ -243,6 +253,7 @@ with tab_t:
             payload = {
                 "name": name_in.strip(),
                 "description": desc_in.strip() or None,
+                "price_per_team": float(price_in) or None,
                 "format": fmt_in,
                 "team_size": int(team_size_in),
                 "status": status_in,
@@ -258,7 +269,36 @@ with tab_t:
             }
             try:
                 res = sb.table("tournaments").insert(payload).execute()
-                st.success(f"Torneio criado ✅ (ID: {res.data[0]['id']})")
+                tournament_id = res.data[0]["id"]
+                image_url = None
+                if image_file_in is not None:
+                    with st.spinner("A carregar imagem..."):
+                        urls = upload_images_to_storage(
+                            sb, [image_file_in], tournament_id,
+                            bucket_name=TOURNAMENT_IMAGES_BUCKET,
+                        )
+                    if urls:
+                        image_url = urls[0]
+                        sb.table("tournaments").update(
+                            {"image_url": image_url}
+                        ).eq("id", tournament_id).execute()
+                st.success(f"Torneio criado ✅ (ID: {tournament_id})")
+
+                if float(price_in) > 0:
+                    try:
+                        with st.spinner("A criar produto no Stripe..."):
+                            fields = sync_tournament_stripe(
+                                sb, tournament_id, name_in.strip(),
+                                float(price_in), image_url,
+                            )
+                        st.success("Produto Stripe criado ✅")
+                        if fields.get("stripe_payment_link"):
+                            st.caption(f"Link de pagamento: {fields['stripe_payment_link']}")
+                    except Exception as e:
+                        st.warning(
+                            f"Torneio criado, mas falhou a criação do produto Stripe: {e}. "
+                            "Podes voltar a guardar o torneio para tentar de novo."
+                        )
             except Exception as e:
                 st.error(f"Erro ao criar torneio: {e}")
 
@@ -306,7 +346,16 @@ with tab_t:
                         "Data de fim",
                         value=date_or_none(t.get("end_date")),
                     )
+                    price_e = st.number_input(
+                        "Preço por equipa (€, 0 = grátis)", 0.0, 100000.0,
+                        float(t.get("price_per_team") or 0.0), step=5.0
+                    )
 
+                if t.get("image_url"):
+                    st.image(t["image_url"], width=200, caption="Imagem atual")
+                image_file_e = st.file_uploader(
+                    "Substituir imagem (opcional)", type=["jpg", "jpeg", "png"]
+                )
                 desc_e = st.text_area("Descrição", value=t.get("description", "") or "")
 
                 gc1, gc2, gc3, gc4 = st.columns(4)
@@ -328,6 +377,7 @@ with tab_t:
                 payload = {
                     "name": name_e.strip(),
                     "description": desc_e.strip() or None,
+                    "price_per_team": float(price_e) or None,
                     "format": fmt_e,
                     "team_size": int(team_size_e),
                     "status": status_e,
@@ -341,9 +391,25 @@ with tab_t:
                     "court_id": court_label_to_id.get(court_e),
                     "admin_created_by": st.session_state.get("username"),
                 }
+                if image_file_e is not None:
+                    with st.spinner("A carregar imagem..."):
+                        urls = upload_images_to_storage(
+                            sb, [image_file_e], t["id"],
+                            bucket_name=TOURNAMENT_IMAGES_BUCKET,
+                        )
+                    if urls:
+                        payload["image_url"] = urls[0]
                 try:
                     sb.table("tournaments").update(payload).eq("id", t["id"]).execute()
                     st.success("Torneio atualizado ✅")
+                    try:
+                        with st.spinner("A sincronizar com o Stripe..."):
+                            sync_tournament_stripe(
+                                sb, t["id"], name_e.strip(), float(price_e),
+                                payload.get("image_url") or t.get("image_url"),
+                            )
+                    except Exception as e:
+                        st.warning(f"Falhou a sincronização com o Stripe: {e}")
                 except Exception as e:
                     st.error(f"Erro ao atualizar torneio: {e}")
 
@@ -400,8 +466,31 @@ with tab_e:
             profile_opts = ["— Convidado (sem conta) —"] + [profile_label(p) for p in profiles]
             plabel_to_id = {profile_label(p): p["id"] for p in profiles}
 
+            price = t.get("price_per_team")
+            if price:
+                paid_count = sum(1 for tm in teams if tm.get("is_paid"))
+                st.caption(
+                    f"💶 Preço por equipa: **{float(price):.2f} €**  ·  "
+                    f"Pagas: **{paid_count}/{len(teams)}**"
+                )
+
             for team in teams:
-                with st.expander(f"🛡️ {team_label(team)}", expanded=False):
+                paid_badge = "💶 Pago" if team.get("is_paid") else "⚠️ Por pagar"
+                with st.expander(f"🛡️ {team_label(team)}  ·  {paid_badge}", expanded=False):
+                    pc1, pc2 = st.columns([3, 1])
+                    pc1.write("💶 **Pago**" if team.get("is_paid") else "⚠️ **Por pagar**")
+                    if team.get("is_paid"):
+                        if pc2.button("Marcar por pagar", key=f"unpaid_{team['id']}"):
+                            sb.table("tournament_teams").update(
+                                {"is_paid": False, "paid_at": None}
+                            ).eq("id", team["id"]).execute()
+                            st.rerun()
+                    else:
+                        if pc2.button("Marcar como pago", key=f"paid_{team['id']}"):
+                            sb.table("tournament_teams").update(
+                                {"is_paid": True, "paid_at": datetime.now(timezone.utc).isoformat()}
+                            ).eq("id", team["id"]).execute()
+                            st.rerun()
                     members = (
                         sb.table("tournament_team_members")
                         .select("*")

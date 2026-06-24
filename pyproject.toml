@@ -8,6 +8,7 @@ dependencies = [
     "bcrypt>=5.0.0",
     "streamlit>=1.53.0",
     "streamlit-authenticator>=0.4.2",
+    "stripe>=15.2.1",
     "supabase>=2.27.2",
     "watchdog>=6.0.0",
 ]
