@@ -38,6 +38,7 @@ sb = get_supabase_client()
 FORMATS = {
     "knockout": "Eliminatória direta",
     "group_then_knockout": "Fase de grupos + Eliminatória",
+    "streetball": "Roda Bota Fora",
 }
 STATUSES = ["draft", "registration", "group_stage", "knockout", "completed", "cancelled"]
 MATCH_STATUSES = ["scheduled", "in_progress", "completed", "cancelled"]
@@ -81,16 +82,44 @@ def fetch_matches(tournament_id):
     return res.data or []
 
 
-def tournament_selectbox(key, label="Torneio *"):
-    """Render a tournament selectbox and return the selected tournament dict (or None)."""
+def tournament_selectbox(key, label="Torneio *", format_filter=None):
+    """Render a tournament selectbox and return the selected tournament dict (or None).
+
+    If `format_filter` is given (a format string, or a list of them), only
+    tournaments with a matching `format` are listed.
+    """
     tournaments = fetch_tournaments(sb)
+    if format_filter:
+        allowed = {format_filter} if isinstance(format_filter, str) else set(format_filter)
+        tournaments = [t for t in tournaments if t.get("format") in allowed]
     if not tournaments:
-        st.warning("Ainda não existem torneios. Cria um no separador **Torneios**.")
+        st.warning("Ainda não existem torneios deste formato. Cria um no separador **Torneios**.")
         return None
     labels = [tournament_label(t) for t in tournaments]
     label_to_t = {tournament_label(t): t for t in tournaments}
     selected = st.selectbox(label, labels, key=key)
     return label_to_t[selected]
+
+
+def fetch_streetball_state(tournament_id):
+    res = (
+        sb.table("tournament_streetball")
+        .select("*")
+        .eq("tournament_id", tournament_id)
+        .execute()
+    )
+    rows = res.data or []
+    return rows[0] if rows else None
+
+
+def ensure_streetball_state(tournament_id):
+    state = fetch_streetball_state(tournament_id)
+    if state:
+        return state
+    res = sb.table("tournament_streetball").insert(
+        {"tournament_id": tournament_id}
+    ).execute()
+    return res.data[0]
 
 
 def round_label_for(num_matches: int) -> str:
@@ -186,8 +215,8 @@ def generate_bracket(sb, tournament, team_ids):
 # =======================================================================
 # TABS
 # =======================================================================
-tab_t, tab_e, tab_g, tab_j = st.tabs(
-    ["🏆 Torneios", "👥 Equipas", "🔀 Grupos & Sorteio", "🏀 Jogos"]
+tab_t, tab_e, tab_g, tab_j, tab_rbf = st.tabs(
+    ["🏆 Torneios", "👥 Equipas", "🔀 Grupos & Sorteio", "🏀 Jogos", "🕺 Roda Bota Fora"]
 )
 
 # =======================================================================
@@ -567,86 +596,82 @@ with tab_e:
 # =======================================================================
 with tab_g:
     st.subheader("Grupos & Sorteio")
-    t = tournament_selectbox("groups_t_select")
+    t = tournament_selectbox("groups_t_select", format_filter="group_then_knockout")
     if t:
-        if t.get("format") != "group_then_knockout":
-            st.info(
-                "Este torneio é de **eliminatória direta** — não tem fase de grupos. "
-                "Muda o formato no separador *Torneios* se quiseres usar grupos."
-            )
+        # Create group
+        with st.form("add_group_form"):
+            gname = st.text_input("Nome do grupo (ex.: Grupo A) *")
+            add_group = st.form_submit_button("Criar grupo")
+        if add_group:
+            if not gname.strip():
+                st.error("Nome do grupo é obrigatório.")
+            else:
+                try:
+                    sb.table("tournament_groups").insert({
+                        "tournament_id": t["id"],
+                        "name": gname.strip(),
+                    }).execute()
+                    st.success("Grupo criado ✅")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Erro ao criar grupo: {e}")
+
+        st.divider()
+        groups = fetch_groups(t["id"])
+        teams = fetch_teams(t["id"])
+        if not groups:
+            st.info("Ainda não há grupos.")
+        elif not teams:
+            st.info("Cria equipas primeiro no separador *Equipas*.")
         else:
-            # Create group
-            with st.form("add_group_form"):
-                gname = st.text_input("Nome do grupo (ex.: Grupo A) *")
-                add_group = st.form_submit_button("Criar grupo")
-            if add_group:
-                if not gname.strip():
-                    st.error("Nome do grupo é obrigatório.")
-                else:
-                    try:
-                        sb.table("tournament_groups").insert({
-                            "tournament_id": t["id"],
-                            "name": gname.strip(),
-                        }).execute()
-                        st.success("Grupo criado ✅")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Erro ao criar grupo: {e}")
+            gid_to_name = {g["id"]: g["name"] for g in groups}
+            group_opts = ["— Sem grupo —"] + [g["name"] for g in groups]
+            gname_to_id = {g["name"]: g["id"] for g in groups}
+
+            st.markdown("**Atribuir equipas a grupos**")
+            for team in teams:
+                cur = gid_to_name.get(team.get("group_id"), "— Sem grupo —")
+                sel = st.selectbox(
+                    team["name"], group_opts,
+                    index=group_opts.index(cur),
+                    key=f"grp_{team['id']}",
+                )
+                new_gid = gname_to_id.get(sel)
+                if new_gid != team.get("group_id"):
+                    sb.table("tournament_teams").update(
+                        {"group_id": new_gid}
+                    ).eq("id", team["id"]).execute()
+                    st.rerun()
 
             st.divider()
-            groups = fetch_groups(t["id"])
-            teams = fetch_teams(t["id"])
-            if not groups:
-                st.info("Ainda não há grupos.")
-            elif not teams:
-                st.info("Cria equipas primeiro no separador *Equipas*.")
-            else:
-                gid_to_name = {g["id"]: g["name"] for g in groups}
-                group_opts = ["— Sem grupo —"] + [g["name"] for g in groups]
-                gname_to_id = {g["name"]: g["id"] for g in groups}
-
-                st.markdown("**Atribuir equipas a grupos**")
-                for team in teams:
-                    cur = gid_to_name.get(team.get("group_id"), "— Sem grupo —")
-                    sel = st.selectbox(
-                        team["name"], group_opts,
-                        index=group_opts.index(cur),
-                        key=f"grp_{team['id']}",
-                    )
-                    new_gid = gname_to_id.get(sel)
-                    if new_gid != team.get("group_id"):
-                        sb.table("tournament_teams").update(
-                            {"group_id": new_gid}
-                        ).eq("id", team["id"]).execute()
-                        st.rerun()
-
-                st.divider()
-                st.markdown("**Gerar jogos da fase de grupos** (todos-contra-todos por grupo)")
-                if st.button("⚙️ Gerar jogos de grupo"):
-                    created = 0
-                    for g in groups:
-                        gteams = [t2 for t2 in teams if t2.get("group_id") == g["id"]]
-                        for i in range(len(gteams)):
-                            for j in range(i + 1, len(gteams)):
-                                sb.table("tournament_matches").insert({
-                                    "tournament_id": t["id"],
-                                    "stage": "group",
-                                    "group_id": g["id"],
-                                    "team_a_id": gteams[i]["id"],
-                                    "team_b_id": gteams[j]["id"],
-                                    "court_id": t.get("court_id"),
-                                    "status": "scheduled",
-                                    "admin_created_by": st.session_state.get("username"),
-                                }).execute()
-                                created += 1
-                    st.success(f"{created} jogo(s) de grupo criado(s) ✅")
+            st.markdown("**Gerar jogos da fase de grupos** (todos-contra-todos por grupo)")
+            if st.button("⚙️ Gerar jogos de grupo"):
+                created = 0
+                for g in groups:
+                    gteams = [t2 for t2 in teams if t2.get("group_id") == g["id"]]
+                    for i in range(len(gteams)):
+                        for j in range(i + 1, len(gteams)):
+                            sb.table("tournament_matches").insert({
+                                "tournament_id": t["id"],
+                                "stage": "group",
+                                "group_id": g["id"],
+                                "team_a_id": gteams[i]["id"],
+                                "team_b_id": gteams[j]["id"],
+                                "court_id": t.get("court_id"),
+                                "status": "scheduled",
+                                "admin_created_by": st.session_state.get("username"),
+                            }).execute()
+                            created += 1
+                st.success(f"{created} jogo(s) de grupo criado(s) ✅")
 
 # =======================================================================
 # TAB 4: Matches (scores, standings, bracket)
 # =======================================================================
 with tab_j:
     st.subheader("Jogos")
-    t = tournament_selectbox("matches_t_select")
+    t = tournament_selectbox(
+        "matches_t_select", format_filter=["knockout", "group_then_knockout"]
+    )
     if t:
         teams = fetch_teams(t["id"])
         team_by_id = {tm["id"]: tm for tm in teams}
@@ -815,3 +840,98 @@ with tab_j:
                         st.rerun()
                     except Exception as e:
                         st.error(f"Erro ao guardar: {e}")
+
+# =======================================================================
+# TAB 5: Roda Bota Fora (streetball) — current winner & eliminated teams
+# =======================================================================
+with tab_rbf:
+    st.subheader("Roda Bota Fora")
+    t = tournament_selectbox("rbf_t_select", format_filter="streetball")
+    if t:
+        teams = fetch_teams(t["id"])
+        if not teams:
+            st.info("Este torneio ainda não tem equipas. Adiciona equipas no separador **Equipas**.")
+        else:
+            state = ensure_streetball_state(t["id"])
+            eliminated_ids = set(state.get("eliminated_team_ids") or [])
+            current_winner_id = state.get("current_winner_team_id")
+            team_by_id = {tm["id"]: tm for tm in teams}
+            is_completed = t.get("status") == "completed"
+
+            if current_winner_id and current_winner_id in team_by_id:
+                if is_completed:
+                    st.success(f"🏆 Vencedor final: **{team_by_id[current_winner_id]['name']}**")
+                else:
+                    st.success(f"🏆 Vencedor atual: **{team_by_id[current_winner_id]['name']}**")
+            else:
+                st.info("Ainda não há vencedor atual definido.")
+
+            active_teams = [tm for tm in teams if tm["id"] not in eliminated_ids]
+
+            if is_completed:
+                st.caption(
+                    "🔒 Este torneio está marcado como **concluído** — o vencedor atual é o "
+                    "vencedor final e já não pode ser alterado aqui."
+                )
+            else:
+                st.divider()
+                st.markdown("**Definir vencedor atual**")
+                if active_teams:
+                    winner_opts = [team_label(tm) for tm in active_teams]
+                    wlabel_to_id = {team_label(tm): tm["id"] for tm in active_teams}
+                    cur_label = next(
+                        (team_label(tm) for tm in active_teams if tm["id"] == current_winner_id),
+                        winner_opts[0],
+                    )
+                    winner_sel = st.selectbox(
+                        "Equipa vencedora", winner_opts,
+                        index=winner_opts.index(cur_label), key="rbf_winner_sel",
+                    )
+                    if st.button("👑 Guardar vencedor atual"):
+                        try:
+                            sb.table("tournament_streetball").update(
+                                {"current_winner_team_id": wlabel_to_id[winner_sel]}
+                            ).eq("id", state["id"]).execute()
+                            st.success("Vencedor atualizado ✅")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erro ao guardar vencedor: {e}")
+                else:
+                    st.warning("Todas as equipas foram eliminadas.")
+
+                st.divider()
+                st.markdown("**Equipas**")
+                for tm in teams:
+                    is_eliminated = tm["id"] in eliminated_ids
+                    is_winner = tm["id"] == current_winner_id
+                    if is_winner:
+                        badge = "🏆 Vencedor atual"
+                    elif is_eliminated:
+                        badge = "❌ Eliminado"
+                    else:
+                        badge = "— Em jogo —"
+
+                    c1, c2 = st.columns([4, 1])
+                    c1.write(f"**{team_label(tm)}**  ·  {badge}")
+                    if is_eliminated:
+                        if c2.button("↩️ Repor", key=f"rbf_restore_{tm['id']}"):
+                            new_elim = [i for i in eliminated_ids if i != tm["id"]]
+                            try:
+                                sb.table("tournament_streetball").update(
+                                    {"eliminated_team_ids": new_elim}
+                                ).eq("id", state["id"]).execute()
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Erro ao repor equipa: {e}")
+                    else:
+                        if c2.button(
+                            "❌ Eliminar", key=f"rbf_elim_{tm['id']}", disabled=is_winner
+                        ):
+                            new_elim = list(eliminated_ids) + [tm["id"]]
+                            try:
+                                sb.table("tournament_streetball").update(
+                                    {"eliminated_team_ids": new_elim}
+                                ).eq("id", state["id"]).execute()
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Erro ao eliminar equipa: {e}")
