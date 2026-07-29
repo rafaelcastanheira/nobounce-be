@@ -1,5 +1,6 @@
 """Page for managing tournaments: tournaments, teams, groups and matches."""
 import math
+import random
 from datetime import date, datetime, timezone
 import sys
 from pathlib import Path
