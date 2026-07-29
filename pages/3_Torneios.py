@@ -967,52 +967,36 @@ with tab_rbf:
                     st.caption("Sem desafiante definido e a fila está vazia.")
 
                 # -----------------------------------------------------
-                # Fila de desafiantes
+                # Fila de desafiantes (ordem aleatória, guardada ao baralhar)
                 # -----------------------------------------------------
                 st.divider()
                 st.markdown("**Fila de desafiantes**")
+                shuffle_pool = [
+                    tm["id"] for tm in active_teams
+                    if tm["id"] != current_winner_id and tm["id"] != current_challenger_id
+                ]
+                if st.button("🎲 Baralhar fila", key="rbf_shuffle_queue", disabled=not shuffle_pool):
+                    try:
+                        shuffled = list(shuffle_pool)
+                        random.shuffle(shuffled)
+                        save_state({"challenger_queue_team_ids": shuffled})
+                        st.success("Fila baralhada ✅")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Erro ao baralhar fila: {e}")
+
                 if queue_ids:
                     for idx, team_id in enumerate(queue_ids):
                         if team_id not in team_by_id:
                             continue
-                        qc1, qc2, qc3, qc4 = st.columns([4, 1, 1, 1])
+                        qc1, qc2 = st.columns([5, 1])
                         qc1.write(f"**{idx + 1}.** {team_name(team_id)}")
-                        if qc2.button("⬆️", key=f"rbf_q_up_{team_id}", disabled=idx == 0):
-                            new_queue = list(queue_ids)
-                            new_queue[idx - 1], new_queue[idx] = new_queue[idx], new_queue[idx - 1]
-                            save_state({"challenger_queue_team_ids": new_queue})
-                            st.rerun()
-                        if qc3.button("⬇️", key=f"rbf_q_down_{team_id}", disabled=idx == len(queue_ids) - 1):
-                            new_queue = list(queue_ids)
-                            new_queue[idx + 1], new_queue[idx] = new_queue[idx], new_queue[idx + 1]
-                            save_state({"challenger_queue_team_ids": new_queue})
-                            st.rerun()
-                        if qc4.button("🗑️", key=f"rbf_q_remove_{team_id}"):
+                        if qc2.button("🗑️", key=f"rbf_q_remove_{team_id}"):
                             new_queue = [i for i in queue_ids if i != team_id]
                             save_state({"challenger_queue_team_ids": new_queue})
                             st.rerun()
                 else:
-                    st.caption("A fila está vazia.")
-
-                queued_ids = set(queue_ids)
-                waiting_teams = [
-                    tm for tm in active_teams
-                    if tm["id"] != current_winner_id
-                    and tm["id"] != current_challenger_id
-                    and tm["id"] not in queued_ids
-                ]
-                if waiting_teams:
-                    add_opts = [team_label(tm) for tm in waiting_teams]
-                    add_label_to_id = {team_label(tm): tm["id"] for tm in waiting_teams}
-                    add_col1, add_col2 = st.columns([4, 1])
-                    add_sel = add_col1.selectbox("Adicionar à fila", add_opts, key="rbf_queue_add_sel")
-                    if add_col2.button("➕ Adicionar", key="rbf_queue_add_btn"):
-                        try:
-                            new_queue = list(queue_ids) + [add_label_to_id[add_sel]]
-                            save_state({"challenger_queue_team_ids": new_queue})
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"Erro ao adicionar à fila: {e}")
+                    st.caption("A fila está vazia. Usa **🎲 Baralhar fila** para gerar uma ordem aleatória.")
 
                 # -----------------------------------------------------
                 # Lista de equipas (eliminação/reposição manual)
