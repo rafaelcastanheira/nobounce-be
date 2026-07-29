@@ -842,7 +842,7 @@ with tab_j:
                         st.error(f"Erro ao guardar: {e}")
 
 # =======================================================================
-# TAB 5: Roda Bota Fora (streetball) — current winner & eliminated teams
+# TAB 5: Roda Bota Fora (streetball) — winner, challenger, queue & eliminated
 # =======================================================================
 with tab_rbf:
     st.subheader("Roda Bota Fora")
@@ -855,14 +855,23 @@ with tab_rbf:
             state = ensure_streetball_state(t["id"])
             eliminated_ids = set(state.get("eliminated_team_ids") or [])
             current_winner_id = state.get("current_winner_team_id")
+            current_challenger_id = state.get("current_challenger_team_id")
+            queue_ids = list(state.get("challenger_queue_team_ids") or [])
             team_by_id = {tm["id"]: tm for tm in teams}
             is_completed = t.get("status") == "completed"
 
+            def team_name(team_id):
+                tm = team_by_id.get(team_id)
+                return tm["name"] if tm else "?"
+
+            def save_state(payload):
+                sb.table("tournament_streetball").update(payload).eq("id", state["id"]).execute()
+
             if current_winner_id and current_winner_id in team_by_id:
                 if is_completed:
-                    st.success(f"🏆 Vencedor final: **{team_by_id[current_winner_id]['name']}**")
+                    st.success(f"🏆 Vencedor final: **{team_name(current_winner_id)}**")
                 else:
-                    st.success(f"🏆 Vencedor atual: **{team_by_id[current_winner_id]['name']}**")
+                    st.success(f"🏆 Vencedor atual: **{team_name(current_winner_id)}**")
             else:
                 st.info("Ainda não há vencedor atual definido.")
 
@@ -889,9 +898,17 @@ with tab_rbf:
                     )
                     if st.button("👑 Guardar vencedor atual"):
                         try:
-                            sb.table("tournament_streetball").update(
-                                {"current_winner_team_id": wlabel_to_id[winner_sel]}
-                            ).eq("id", state["id"]).execute()
+                            new_winner_id = wlabel_to_id[winner_sel]
+                            # a team can't be its own challenger or sit in the queue at the same time
+                            new_challenger_id = (
+                                None if current_challenger_id == new_winner_id else current_challenger_id
+                            )
+                            new_queue = [i for i in queue_ids if i != new_winner_id]
+                            save_state({
+                                "current_winner_team_id": new_winner_id,
+                                "current_challenger_team_id": new_challenger_id,
+                                "challenger_queue_team_ids": new_queue,
+                            })
                             st.success("Vencedor atualizado ✅")
                             st.rerun()
                         except Exception as e:
@@ -899,17 +916,123 @@ with tab_rbf:
                 else:
                     st.warning("Todas as equipas foram eliminadas.")
 
+                # -----------------------------------------------------
+                # Desafiante atual + resultado do jogo
+                # -----------------------------------------------------
+                st.divider()
+                st.markdown("**Desafiante atual**")
+                if current_challenger_id and current_challenger_id in team_by_id:
+                    st.write(f"🥊 A defrontar o vencedor: **{team_name(current_challenger_id)}**")
+                    cc1, cc2 = st.columns(2)
+                    if cc1.button("🏆 Desafiante venceu", key="rbf_challenger_wins"):
+                        try:
+                            new_eliminated = list(eliminated_ids)
+                            if current_winner_id:
+                                new_eliminated.append(current_winner_id)
+                            save_state({
+                                "current_winner_team_id": current_challenger_id,
+                                "current_challenger_team_id": queue_ids[0] if queue_ids else None,
+                                "challenger_queue_team_ids": queue_ids[1:],
+                                "eliminated_team_ids": new_eliminated,
+                            })
+                            st.success("Resultado registado ✅")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erro ao registar resultado: {e}")
+                    if cc2.button("👑 Vencedor manteve-se", key="rbf_winner_stays"):
+                        try:
+                            new_eliminated = list(eliminated_ids) + [current_challenger_id]
+                            save_state({
+                                "current_challenger_team_id": queue_ids[0] if queue_ids else None,
+                                "challenger_queue_team_ids": queue_ids[1:],
+                                "eliminated_team_ids": new_eliminated,
+                            })
+                            st.success("Resultado registado ✅")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erro ao registar resultado: {e}")
+                elif queue_ids:
+                    st.caption("Sem desafiante em jogo — há equipas à espera na fila.")
+                    if st.button("▶️ Chamar próximo da fila", key="rbf_pull_next"):
+                        try:
+                            save_state({
+                                "current_challenger_team_id": queue_ids[0],
+                                "challenger_queue_team_ids": queue_ids[1:],
+                            })
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erro ao chamar próxima equipa: {e}")
+                else:
+                    st.caption("Sem desafiante definido e a fila está vazia.")
+
+                # -----------------------------------------------------
+                # Fila de desafiantes
+                # -----------------------------------------------------
+                st.divider()
+                st.markdown("**Fila de desafiantes**")
+                if queue_ids:
+                    for idx, team_id in enumerate(queue_ids):
+                        if team_id not in team_by_id:
+                            continue
+                        qc1, qc2, qc3, qc4 = st.columns([4, 1, 1, 1])
+                        qc1.write(f"**{idx + 1}.** {team_name(team_id)}")
+                        if qc2.button("⬆️", key=f"rbf_q_up_{team_id}", disabled=idx == 0):
+                            new_queue = list(queue_ids)
+                            new_queue[idx - 1], new_queue[idx] = new_queue[idx], new_queue[idx - 1]
+                            save_state({"challenger_queue_team_ids": new_queue})
+                            st.rerun()
+                        if qc3.button("⬇️", key=f"rbf_q_down_{team_id}", disabled=idx == len(queue_ids) - 1):
+                            new_queue = list(queue_ids)
+                            new_queue[idx + 1], new_queue[idx] = new_queue[idx], new_queue[idx + 1]
+                            save_state({"challenger_queue_team_ids": new_queue})
+                            st.rerun()
+                        if qc4.button("🗑️", key=f"rbf_q_remove_{team_id}"):
+                            new_queue = [i for i in queue_ids if i != team_id]
+                            save_state({"challenger_queue_team_ids": new_queue})
+                            st.rerun()
+                else:
+                    st.caption("A fila está vazia.")
+
+                queued_ids = set(queue_ids)
+                waiting_teams = [
+                    tm for tm in active_teams
+                    if tm["id"] != current_winner_id
+                    and tm["id"] != current_challenger_id
+                    and tm["id"] not in queued_ids
+                ]
+                if waiting_teams:
+                    add_opts = [team_label(tm) for tm in waiting_teams]
+                    add_label_to_id = {team_label(tm): tm["id"] for tm in waiting_teams}
+                    add_col1, add_col2 = st.columns([4, 1])
+                    add_sel = add_col1.selectbox("Adicionar à fila", add_opts, key="rbf_queue_add_sel")
+                    if add_col2.button("➕ Adicionar", key="rbf_queue_add_btn"):
+                        try:
+                            new_queue = list(queue_ids) + [add_label_to_id[add_sel]]
+                            save_state({"challenger_queue_team_ids": new_queue})
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erro ao adicionar à fila: {e}")
+
+                # -----------------------------------------------------
+                # Lista de equipas (eliminação/reposição manual)
+                # -----------------------------------------------------
                 st.divider()
                 st.markdown("**Equipas**")
                 for tm in teams:
                     is_eliminated = tm["id"] in eliminated_ids
                     is_winner = tm["id"] == current_winner_id
+                    is_challenger = tm["id"] == current_challenger_id
+                    queue_pos = queue_ids.index(tm["id"]) + 1 if tm["id"] in queue_ids else None
                     if is_winner:
                         badge = "🏆 Vencedor atual"
+                    elif is_challenger:
+                        badge = "🥊 Desafiante atual"
+                    elif queue_pos:
+                        badge = f"🕒 Fila #{queue_pos}"
                     elif is_eliminated:
                         badge = "❌ Eliminado"
                     else:
-                        badge = "— Em jogo —"
+                        badge = "— Disponível —"
 
                     c1, c2 = st.columns([4, 1])
                     c1.write(f"**{team_label(tm)}**  ·  {badge}")
@@ -917,21 +1040,22 @@ with tab_rbf:
                         if c2.button("↩️ Repor", key=f"rbf_restore_{tm['id']}"):
                             new_elim = [i for i in eliminated_ids if i != tm["id"]]
                             try:
-                                sb.table("tournament_streetball").update(
-                                    {"eliminated_team_ids": new_elim}
-                                ).eq("id", state["id"]).execute()
+                                save_state({"eliminated_team_ids": new_elim})
                                 st.rerun()
                             except Exception as e:
                                 st.error(f"Erro ao repor equipa: {e}")
                     else:
                         if c2.button(
-                            "❌ Eliminar", key=f"rbf_elim_{tm['id']}", disabled=is_winner
+                            "❌ Eliminar", key=f"rbf_elim_{tm['id']}",
+                            disabled=is_winner or is_challenger,
                         ):
                             new_elim = list(eliminated_ids) + [tm["id"]]
+                            new_queue = [i for i in queue_ids if i != tm["id"]]
                             try:
-                                sb.table("tournament_streetball").update(
-                                    {"eliminated_team_ids": new_elim}
-                                ).eq("id", state["id"]).execute()
+                                save_state({
+                                    "eliminated_team_ids": new_elim,
+                                    "challenger_queue_team_ids": new_queue,
+                                })
                                 st.rerun()
                             except Exception as e:
                                 st.error(f"Erro ao eliminar equipa: {e}")
