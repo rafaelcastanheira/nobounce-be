@@ -1,7 +1,6 @@
 import streamlit as st
-import yaml
-from yaml.loader import SafeLoader
-import streamlit_authenticator as stauth
+
+from utils import require_login
 
 
 st.set_page_config(
@@ -10,28 +9,8 @@ st.set_page_config(
     page_icon="🏀"
 )
 
-# Authentication
-with open("auth.yaml", "r", encoding="utf-8") as f:
-    config = yaml.load(f, Loader=SafeLoader)
-
-authenticator = stauth.Authenticate(
-    config["credentials"],
-    config["cookie"]["name"],
-    config["cookie"]["key"],
-    config["cookie"]["expiry_days"],
-)
-
-authenticator.login()
-
-if st.session_state.get("authentication_status") is False:
-    st.error("Email/password inválidos.")
-    st.stop()
-if st.session_state.get("authentication_status") is None:
-    st.info("Faz login para continuares.")
-    st.stop()
-
-authenticator.logout("Logout", "sidebar")
-st.sidebar.success(f"Logado como: {st.session_state.get('name')}")
+# Authentication: Google login via st.login, restricted to allowed emails
+require_login()
 
 st.title("No Bounce 🏀 Admin")
 st.caption("Gestão de campos e ratings")

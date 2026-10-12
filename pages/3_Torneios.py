@@ -10,6 +10,7 @@ import streamlit as st
 # Add parent directory to path to import utils
 sys.path.append(str(Path(__file__).parent.parent))
 from utils import (
+    require_login,
     get_supabase_client,
     fetch_courts,
     court_label,
@@ -26,10 +27,7 @@ TOURNAMENT_IMAGES_BUCKET = "tournament-images"
 
 st.set_page_config(page_title="Torneios", layout="wide", page_icon="🏆")
 
-# Check authentication
-if not st.session_state.get("authentication_status"):
-    st.error("Fazer login primeiro.")
-    st.stop()
+require_login()
 
 st.title("🏆 Torneios")
 st.caption("ATENÇÃO: qualquer alteração feita aqui é visível na aplicação.")

@@ -5,6 +5,7 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
 from utils import (
+    require_login,
     get_supabase_client,
     fetch_courts,
     court_label,
@@ -14,10 +15,7 @@ from utils import (
 
 st.set_page_config(page_title="Adicionar Campos & Ratings", layout="wide", page_icon="🏀")
 
-# Check authentication
-if not st.session_state.get("authentication_status"):
-    st.error("Fazer login primeiro.")
-    st.stop()
+require_login()
 
 st.title("➕ Adicionar Campos & Ratings")
 st.caption("ATENÇÃO: qualquer adição feita aqui é visível na aplicação.")

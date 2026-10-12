@@ -4,6 +4,32 @@ import stripe
 from supabase import create_client
 
 
+def require_login():
+    """Gate the current page behind Google login + email allowlist.
+
+    Uses Streamlit's native OIDC login (st.login). The OAuth client config
+    lives in the [auth] section of st.secrets and the allowed emails in
+    [access] (see .streamlit/secrets.toml.example). Every page must call this,
+    since Streamlit runs each page script independently.
+    """
+    if not st.user.is_logged_in:
+        st.info("Faz login para continuares.")
+        st.button("Login com Google", on_click=st.login)
+        st.stop()
+
+    allowed_emails = {
+        email.lower()
+        for email in st.secrets.get("access", {}).get("allowed_emails", [])
+    }
+    if (st.user.email or "").lower() not in allowed_emails:
+        st.error(f"A conta {st.user.email} não tem acesso.")
+        st.button("Logout", on_click=st.logout)
+        st.stop()
+
+    st.sidebar.button("Logout", on_click=st.logout)
+    st.sidebar.success(f"Logado como: {st.user.name or st.user.email}")
+
+
 def get_supabase_secrets():
     return  st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_SERVICE_ROLE_KEY"]
 

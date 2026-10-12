@@ -6,6 +6,7 @@ from pathlib import Path
 # Add parent directory to path to import utils
 sys.path.append(str(Path(__file__).parent.parent))
 from utils import (
+    require_login,
     get_supabase_client,
     fetch_courts,
     court_label,
@@ -15,10 +16,7 @@ from utils import (
 
 st.set_page_config(page_title="Editar Campos & Ratings", layout="wide")
 
-# Check authentication
-if not st.session_state.get("authentication_status"):
-    st.error("Fazer login primeiro.")
-    st.stop()
+require_login()
 
 st.title("✏️ Editar Campos & Ratings")
 st.caption("Editar campos e ratings existentes")
